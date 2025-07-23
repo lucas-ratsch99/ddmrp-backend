@@ -53,34 +53,47 @@ async def upload_multiple_files(
 
             # Save with a consistent name but preserve original extension
             extension = ".xlsm" if vorschauliste.filename.endswith('.xlsm') else ".xlsx"
-            file_path = os.path.join(UPLOAD_DIR, f"Vorschauliste KW27 bis 18.07.2025{extension}")
+            file_path = os.path.join(UPLOAD_DIR, f"Vorschauliste KW29 bis 01.08.2025{extension}")
             with open(file_path, "wb") as buffer:
                 shutil.copyfileobj(vorschauliste.file, buffer)
             uploaded_files.append(f"Vorschauliste KW29 bis 01.08.2025{extension}")
 
-        # Check if Artikel & Materialien file exists (should be permanent)
+        # MOVED OUTSIDE: Check if ALL required files are present
         artikel_file = os.path.join(UPLOAD_DIR, "Artikel & Materialien FGR+.XLSX")
-        if not os.path.exists(artikel_file):
-            return {
-                "status": "warning",
-                "uploaded_files": uploaded_files,
-                "message": f"Files uploaded successfully. Note: Artikel & Materialien FGR+.XLSX file not found - this file should be permanently in the system for analysis to work."
-            }
+        ddmrp_file = os.path.join(UPLOAD_DIR, "DDMRP Project Data.xlsx")
+        vorschau_files = [f for f in os.listdir(UPLOAD_DIR) if f.startswith("Vorschauliste")]
 
-        # Run DDMRP analysis automatically after upload using your existing main function
-        try:
-            processed_results = run_ddmrp_analysis()
+        # Check if all three files exist
+        if (os.path.exists(ddmrp_file) and
+                len(vorschau_files) > 0 and
+                os.path.exists(artikel_file)):
+
+            # Run DDMRP analysis with complete dataset
+            try:
+                processed_results = run_ddmrp_analysis()
+                return {
+                    "status": "success",
+                    "uploaded_files": uploaded_files,
+                    "processed_skus": len(processed_results),
+                    "message": f"Files uploaded and analyzed successfully. {len(processed_results)} SKUs processed."
+                }
+            except Exception as e:
+                return {
+                    "status": "partial_success",
+                    "uploaded_files": uploaded_files,
+                    "message": f"Files uploaded successfully, but analysis failed: {str(e)}"
+                }
+        else:
+            # Not all files present yet - just return upload success
+            missing = []
+            if not os.path.exists(ddmrp_file): missing.append("DDMRP Project Data")
+            if len(vorschau_files) == 0: missing.append("Vorschauliste")
+            if not os.path.exists(artikel_file): missing.append("Artikel & Materialien")
+
             return {
-                "status": "success",
+                "status": "partial_upload",
                 "uploaded_files": uploaded_files,
-                "processed_skus": len(processed_results),
-                "message": f"Files uploaded and analyzed successfully. {len(processed_results)} SKUs processed."
-            }
-        except Exception as e:
-            return {
-                "status": "partial_success",
-                "uploaded_files": uploaded_files,
-                "message": f"Files uploaded successfully, but analysis failed: {str(e)}"
+                "message": f"Files uploaded successfully. Waiting for: {', '.join(missing)}. Analysis will run automatically when all files are present."
             }
 
     except Exception as e:

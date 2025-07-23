@@ -3,10 +3,10 @@
 .idea/
 __pycache__/
 
-# Data
-data/
-*.xlsx
-*.xlsm
+# Ignore all files in data
+data/*
+# But this required file
+!data/inputs/Artikel & Materialien FGR+.XLSX
 
 # Python cache
 *.pyc

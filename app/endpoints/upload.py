@@ -56,7 +56,7 @@ async def upload_multiple_files(
             file_path = os.path.join(UPLOAD_DIR, f"Vorschauliste KW27 bis 18.07.2025{extension}")
             with open(file_path, "wb") as buffer:
                 shutil.copyfileobj(vorschauliste.file, buffer)
-            uploaded_files.append(f"Vorschauliste KW27 bis 18.07.2025{extension}")
+            uploaded_files.append(f"Vorschauliste KW29 bis 01.08.2025{extension}")
 
         # Check if Artikel & Materialien file exists (should be permanent)
         artikel_file = os.path.join(UPLOAD_DIR, "Artikel & Materialien FGR+.XLSX")

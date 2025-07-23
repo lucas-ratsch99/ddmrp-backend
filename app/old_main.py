@@ -123,7 +123,8 @@ def main():
             lead_time_weeks=lt_weeks,
             all_covs=all_covs_data,
             reference_week=current_week,
-            is_340=is_340
+            is_340=is_340,
+            sku=sku
         )
 
         try:

@@ -10,8 +10,11 @@ def classify_lead_time_factor(lead_time_weeks):
     else:                         # Long Lead Time
         return 0.3                # 20–40%
 
-def classify_variability_factor(cov, all_covs):
+def classify_variability_factor(cov, all_covs, sku=None):
     """Use quantile-based classification across all SKUs to self-normalize."""
+    if sku == "573602" or sku == 573602:
+        return 1.5
+
     low_thresh = all_covs.quantile(0.33)
     high_thresh = all_covs.quantile(0.66)
 
@@ -22,7 +25,7 @@ def classify_variability_factor(cov, all_covs):
     else:
         return 0.8
 
-def calculate_ddmrp_fields(df, moq, lead_time_weeks, all_covs=None, reference_week=None, is_340=False):
+def calculate_ddmrp_fields(df, moq, lead_time_weeks, all_covs=None, reference_week=None, is_340=False, sku=None):
     if df.empty:
         return df
 
@@ -40,7 +43,7 @@ def calculate_ddmrp_fields(df, moq, lead_time_weeks, all_covs=None, reference_we
     cov = weekly_std / weekly_adu if weekly_adu > 0 else 0
 
     ltf = classify_lead_time_factor(lead_time_weeks)
-    vf = classify_variability_factor(cov, all_covs) if all_covs is not None else 0.5
+    vf = classify_variability_factor(cov, all_covs, sku) if all_covs is not None else 0.5
     daf = 1.0
 
     # Buffer zones in weekly units

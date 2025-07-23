@@ -3,7 +3,11 @@
 .idea/
 __pycache__/
 
-
-
 # Python cache
 *.pyc
+
+# Allow Excel files in inputs
+!data/
+!data/inputs/
+!data/inputs/*.xlsx
+!data/inputs/*.xlsm

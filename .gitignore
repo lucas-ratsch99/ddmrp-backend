@@ -1,0 +1,12 @@
+# IDE/venv
+.venv/
+.idea/
+__pycache__/
+
+# Data
+data/
+*.xlsx
+*.xlsm
+
+# Python cache
+*.pyc

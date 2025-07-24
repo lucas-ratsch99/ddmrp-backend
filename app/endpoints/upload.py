@@ -53,10 +53,10 @@ async def upload_multiple_files(
 
             # Save with a consistent name but preserve original extension
             extension = ".xlsm" if vorschauliste.filename.endswith('.xlsm') else ".xlsx"
-            file_path = os.path.join(UPLOAD_DIR, f"Vorschauliste KW29 bis 01.08.2025{extension}")
+            file_path = os.path.join(UPLOAD_DIR, f"Vorschauliste KW30 bis 08.08.2025{extension}")
             with open(file_path, "wb") as buffer:
                 shutil.copyfileobj(vorschauliste.file, buffer)
-            uploaded_files.append(f"Vorschauliste KW29 bis 01.08.2025{extension}")
+            uploaded_files.append(f"Vorschauliste KW30 bis 08.08.2025{extension}")
 
         # MOVED OUTSIDE: Check if ALL required files are present
         artikel_file = os.path.join(UPLOAD_DIR, "Artikel & Materialien FGR+.XLSX")

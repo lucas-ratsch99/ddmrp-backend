@@ -11,3 +11,4 @@ __pycache__/
 !data/inputs/
 !data/inputs/*.xlsx
 !data/inputs/*.xlsm
+!data/outputs/

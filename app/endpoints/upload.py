@@ -58,7 +58,10 @@ async def upload_multiple_files(
                 shutil.copyfileobj(vorschauliste.file, buffer)
             uploaded_files.append(f"Vorschauliste KW30 bis 08.08.2025{extension}")
 
-        # MOVED OUTSIDE: Check if ALL required files are present
+        # MOVED OUTSIDE: Create directories and check if ALL required files are present
+        for directory in [UPLOAD_DIR, OUTPUTS_DIR, PROCESSED_DIR]:
+            os.makedirs(directory, exist_ok=True)
+
         artikel_file = os.path.join(UPLOAD_DIR, "Artikel & Materialien FGR+.XLSX")
         ddmrp_file = os.path.join(UPLOAD_DIR, "DDMRP Project Data.xlsx")
         vorschau_files = [f for f in os.listdir(UPLOAD_DIR) if f.startswith("Vorschauliste")]
@@ -98,7 +101,6 @@ async def upload_multiple_files(
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error uploading files: {str(e)}")
-
 
 @router.post("/excel")
 async def upload_excel(file: UploadFile = File(...)):

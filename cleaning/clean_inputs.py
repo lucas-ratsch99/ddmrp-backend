@@ -7,7 +7,7 @@ def load_and_clean_data(input_path):
     df_historical = pd.read_excel(os.path.join(input_path, "DDMRP Project Data.xlsx"), sheet_name="Historical Data", skiprows=4)
     df_prod_plan = pd.read_excel(os.path.join(input_path, "DDMRP Project Data.xlsx"), sheet_name="Production Plan", skiprows=4)
     df_moq = pd.read_excel(os.path.join(input_path, "Artikel & Materialien FGR+.XLSX"), sheet_name="Artikel FGR+", skiprows=1)
-    df_vorschau = pd.read_excel(os.path.join(input_path, "Vorschauliste KW29 bis 01.08.2025.xlsm"), sheet_name="Vorschauliste")
+    df_vorschau = pd.read_excel(os.path.join(input_path, "Vorschauliste KW30 bis 08.08.2025.xlsm"), sheet_name="Vorschauliste")
 
 
     # --- Sales History ---
@@ -63,7 +63,7 @@ def load_and_clean_data(input_path):
     df_vorschau = df_vorschau[df_vorschau["Materialkurztext"].str.contains("FGR", na=False)]
 
     df_sales_orders = df_vorschau[[
-        "Material", "Materialkurztext", "Bestelldat", "WL.Datum", "  KumAuMenge", "  OffnEintMg"
+        "Material", "Materialkurztext", "Bestelldat", "WL.Datum", " KumAuMenge", " OffnEintMg"
     ]].copy()
 
     df_sales_orders = df_sales_orders.rename(columns={
@@ -71,8 +71,8 @@ def load_and_clean_data(input_path):
         "Materialkurztext": "Product Desc",
         "Bestelldat": "Order Date",
         "WL.Datum": "Due Date",
-        "  KumAuMenge": "Ordered Qty",
-        "  OffnEintMg": "Open Qty"
+        " KumAuMenge": "Ordered Qty",
+        " OffnEintMg": "Open Qty"
     })
 
     def clean_product_id(pid):

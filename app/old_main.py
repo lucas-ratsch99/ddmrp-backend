@@ -1,16 +1,28 @@
 import os
 import pandas as pd
 from cleaning.clean_inputs import load_and_clean_data
+import logging
+
+# Set up logging to debug on Render
+logging.basicConfig(level=logging.INFO)
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 INPUTS_DIR = os.path.join(BASE_DIR, "data", "inputs")
 OUTPUTS_DIR = os.path.join(BASE_DIR, "data", "outputs")
-all_results = []
 
 
 def main():
+    # CRITICAL FIX: Force create output directories at runtime
+    os.makedirs(OUTPUTS_DIR, exist_ok=True)
+    os.makedirs(INPUTS_DIR, exist_ok=True)
+    logging.info(f"✅ Created directories: {OUTPUTS_DIR}")
+
+    all_results = []
+
+    logging.info("🚀 DDMRP analysis started")
     print(f"\n📁 Base directory: {BASE_DIR}")
     print(f"📦 Looking in folder: {INPUTS_DIR}")
+    print(f"📤 Output folder: {OUTPUTS_DIR}")
 
     print("✅ Files found in 'data/inputs':")
     for f in os.listdir(INPUTS_DIR):
@@ -60,7 +72,6 @@ def main():
     all_covs_data = df_sales.groupby("Product ID")["Quantity Sold"].std() / \
                     df_sales.groupby("Product ID")["Quantity Sold"].mean()
 
-
     for sku in unique_skus:
         sku_sales = df_sales[df_sales["Product ID"] == sku]
         sku_inv = df_inv[df_inv["Product ID"] == sku]
@@ -92,12 +103,12 @@ def main():
         moq = sku_moq["MOQ"].iloc[0] if not sku_moq.empty else 0
         lt_weeks = sku_moq["Lead Time"].iloc[0] if not sku_moq.empty else 2
         is_340 = sku_moq["Is_340"].iloc[0] if not sku_moq.empty and "Is_340" in sku_moq.columns else False
-        rounding_value = sku_moq["Rounding Value"].iloc[0] if not sku_moq.empty and "Rounding Value" in sku_moq.columns else None
+        rounding_value = sku_moq["Rounding Value"].iloc[
+            0] if not sku_moq.empty and "Rounding Value" in sku_moq.columns else None
         master_df["MOQ"] = moq
         master_df["Lead Time"] = lt_weeks
 
         # Calculate DDMRP fields
-        # Add Net Flow (On-Hand + On-Order - Qualified Demand)
         master_df['Inventory'] = pd.to_numeric(master_df['Inventory'], errors='coerce').fillna(0)
         master_df['Production Orders'] = pd.to_numeric(master_df['Production Orders'], errors='coerce').fillna(0)
 
@@ -106,7 +117,6 @@ def main():
         # Ensure the dataframe is sorted
         master_df = master_df.sort_values("Week")
 
-        # Get the latest week
         # Get the most recent week with available inventory data (non-null, non-zero)
         inventory_weeks = master_df[master_df["Inventory"] > 0]["Week"].dropna().unique()
         if len(inventory_weeks) == 0:
@@ -128,7 +138,6 @@ def main():
         )
 
         try:
-            # Add this print to check context
             print(f"\n🕓 Current inventory week for SKU {sku}: {current_week}")
 
             try:
@@ -195,18 +204,19 @@ def main():
             "Inventory (Current Week)": on_hand,
             "On Order": on_order,
             "Qualified Demand": qualified_demand
-
         }
         all_results.append(output_data)
 
-        # Save snapshot to weekly log
+        # CRITICAL FIX: Ensure output directory exists before writing
         snapshot_path = os.path.join(OUTPUTS_DIR, f"SKU_{sku}_ddmrp_snapshot.csv")
+        os.makedirs(os.path.dirname(snapshot_path), exist_ok=True)
         pd.DataFrame([output_data]).to_csv(snapshot_path, index=False)
-        print(f"📤 Snapshot saved for SKU {sku}: {snapshot_path}")
+        logging.info(f"📤 Snapshot saved for SKU {sku}: {snapshot_path}")
 
         # Save final merged SKU file
         filename = f"SKU_{sku}.xlsx"
         filepath = os.path.join(OUTPUTS_DIR, filename)
+        os.makedirs(os.path.dirname(filepath), exist_ok=True)
 
         with pd.ExcelWriter(filepath, engine='xlsxwriter') as writer:
             master_df.to_excel(writer, sheet_name="Master Data", index=False)
@@ -215,11 +225,20 @@ def main():
 
         print(f"✅ Saved merged and calculated DDMRP file for SKU {sku}")
 
-    # Write all production recommendations into a summary file
-    summary_df = pd.DataFrame(all_results)  # This already contains the output_data for each SKU
+    # CRITICAL FIX: Ensure output directory exists before writing summary
     summary_output_path = os.path.join(OUTPUTS_DIR, "ddmrp_weekly_production_plan.csv")
+    os.makedirs(os.path.dirname(summary_output_path), exist_ok=True)
+
+    summary_df = pd.DataFrame(all_results)
     summary_df.to_csv(summary_output_path, index=False)
+
+    logging.info(f"💾 Saving summary file to: {summary_output_path}")
     print(f"\n📄 DDMRP summary for all SKUs written to:\n{summary_output_path}")
+
+    logging.info(f"✅ Analysis completed successfully. Processed {len(all_results)} SKUs.")
+
+    # Return the results so upload.py can count processed SKUs
+    return all_results
 
 
 if __name__ == "__main__":

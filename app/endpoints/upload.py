@@ -6,6 +6,8 @@ import pandas as pd
 import sys
 import logging
 import traceback
+import glob, os
+
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -89,10 +91,10 @@ async def upload_multiple_files(
 
             # Use consistent filename that matches what clean_inputs.py expects
             extension = ".xlsm" if vorschauliste.filename and vorschauliste.filename.endswith('.xlsm') else ".xlsx"
-            file_path = os.path.join(INPUTS_DIR, f"Vorschauliste KW29 bis 01.08.2025{extension}")
+            file_path = os.path.join(INPUTS_DIR, f"Vorschauliste KW30 bis 01.08.2025{extension}")
             with open(file_path, "wb") as buffer:
                 shutil.copyfileobj(vorschauliste.file, buffer)
-            uploaded_files.append(f"Vorschauliste KW29 bis 01.08.2025{extension}")
+            uploaded_files.append(f"Vorschauliste KW30 bis 01.08.2025{extension}")
             logger.info(f"✅ Saved Vorschauliste to {file_path}")
 
         # Check if all three required files are present

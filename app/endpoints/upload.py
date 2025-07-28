@@ -34,7 +34,7 @@ def safe_run_analysis():
         logger.info("🚀 Starting DDMRP analysis...")
 
         # Import the analysis function only when needed to avoid import errors
-        from old_main import main as run_ddmrp_analysis
+        from app.old_main import main as run_ddmrp_analysis
 
         # Run the analysis
         results = run_ddmrp_analysis()
@@ -154,6 +154,57 @@ async def upload_multiple_files(
         logger.error(f"Traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"Error uploading files: {str(e)}")
 
+
+@router.post("/trigger-analysis")
+async def trigger_analysis():
+    """
+    Manual analysis trigger endpoint - isolated from upload to prevent crashes
+    """
+    try:
+        logger.info("🚀 Analysis triggered manually...")
+
+        # Check if all files exist
+        artikel_exists = os.path.exists(os.path.join(INPUTS_DIR, "Artikel & Materialien FGR+.XLSX"))
+        ddmrp_exists = os.path.exists(os.path.join(INPUTS_DIR, "DDMRP Project Data.xlsx"))
+        vorschau_files = [f for f in os.listdir(INPUTS_DIR) if f.startswith("Vorschauliste")]
+
+        if not (artikel_exists and ddmrp_exists and len(vorschau_files) > 0):
+            missing = []
+            if not artikel_exists: missing.append("Artikel & Materialien FGR+")
+            if not ddmrp_exists: missing.append("DDMRP Project Data")
+            if not vorschau_files: missing.append("Vorschauliste")
+
+            return {
+                "status": "error",
+                "message": f"Missing required files: {', '.join(missing)}"
+            }
+
+        # Import and run analysis safely
+        try:
+            from old_main import main as run_analysis  # Update this import path
+            results = run_analysis()
+            return {
+                "status": "success",
+                "message": f"Analysis completed: {len(results)} SKUs processed",
+                "processed_skus": len(results),
+                "results": results
+            }
+        except ImportError as e:
+            logger.error(f"Analysis import failed: {e}")
+            return {
+                "status": "error",
+                "message": f"Analysis function not available: {e}"
+            }
+        except Exception as e:
+            logger.error(f"Analysis failed: {e}")
+            return {
+                "status": "error",
+                "message": f"Analysis error: {e}"
+            }
+
+    except Exception as e:
+        logger.error(f"❌ Analysis trigger error: {str(e)}")
+        return {"status": "error", "message": str(e)}
 
 @router.get("/analysis-status")
 async def get_analysis_status():

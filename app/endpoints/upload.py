@@ -78,10 +78,10 @@ async def upload_multiple_files(
             if not ddmrp_project_data.filename or not ddmrp_project_data.filename.endswith(('.xlsx', '.xlsm')):
                 raise HTTPException(status_code=400, detail="DDMRP Project Data must be Excel file (.xlsx or .xlsm)")
 
-            file_path = os.path.join(INPUTS_DIR, "DDMRP Project Data.xlsx")
+            file_path = os.path.join(INPUTS_DIR, "DDMRP Project Data.xlsm")
             with open(file_path, "wb") as buffer:
                 shutil.copyfileobj(ddmrp_project_data.file, buffer)
-            uploaded_files.append("DDMRP Project Data.xlsx")
+            uploaded_files.append("DDMRP Project Data.xlsm")
             logger.info(f"✅ Saved DDMRP Project Data to {file_path}")
 
         # Handle Vorschauliste file
@@ -106,7 +106,7 @@ async def upload_multiple_files(
 
         # Check if all three required files are present
         artikel_file = os.path.join(INPUTS_DIR, "Artikel & Materialien FGR+.XLSX")
-        ddmrp_file = os.path.join(INPUTS_DIR, "DDMRP Project Data.xlsx")
+        ddmrp_file = os.path.join(INPUTS_DIR, "DDMRP Project Data.xlsm")
         vorschau_files = [f for f in os.listdir(INPUTS_DIR) if f.startswith("Vorschauliste")]
 
         logger.info(
@@ -174,7 +174,7 @@ async def trigger_analysis():
 
         # Check if all files exist
         artikel_exists = os.path.exists(os.path.join(INPUTS_DIR, "Artikel & Materialien FGR+.XLSX"))
-        ddmrp_exists = os.path.exists(os.path.join(INPUTS_DIR, "DDMRP Project Data.xlsx"))
+        ddmrp_exists = os.path.exists(os.path.join(INPUTS_DIR, "DDMRP Project Data.xlsm"))
         vorschau_files = [f for f in os.listdir(INPUTS_DIR) if f.startswith("Vorschauliste")]
 
         if not (artikel_exists and ddmrp_exists and len(vorschau_files) > 0):

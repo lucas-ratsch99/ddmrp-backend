@@ -86,15 +86,22 @@ async def upload_multiple_files(
 
         # Handle Vorschauliste file
         if vorschauliste:
-            if not vorschauliste.filename or not vorschauliste.filename.endswith(('.xlsx', '.xlsm')):
-                raise HTTPException(status_code=400, detail="Vorschauliste must be Excel file (.xlsx or .xlsm)")
+            # Only accept Excel formats
+            if not vorschauliste.filename or not vorschauliste.filename.endswith(('.xlsx', '.xlsm', '.xls')):
+                raise HTTPException(status_code=400,
+                                    detail="Vorschauliste must be an Excel file (.xlsx, .xlsm, or .xls)")
+
+            # Remove any previously uploaded Vorschauliste files
+            for fname in os.listdir(INPUTS_DIR):
+                if fname.lower().startswith("vorschauliste") and fname.lower().endswith((".xls", ".xlsm", ".xlsx")):
+                    os.remove(os.path.join(INPUTS_DIR, fname))
 
             # Use consistent filename that matches what clean_inputs.py expects
             extension = ".xlsm" if vorschauliste.filename and vorschauliste.filename.endswith('.xlsm') else ".xlsx"
-            file_path = os.path.join(INPUTS_DIR, f"Vorschauliste KW30 bis 08.08.2025{extension}")
+            file_path = os.path.join(INPUTS_DIR, vorschauliste.filename)
             with open(file_path, "wb") as buffer:
                 shutil.copyfileobj(vorschauliste.file, buffer)
-            uploaded_files.append(f"Vorschauliste KW30 bis 08.08.2025{extension}")
+            uploaded_files.append(vorschauliste.filename)
             logger.info(f"✅ Saved Vorschauliste to {file_path}")
 
         # Check if all three required files are present

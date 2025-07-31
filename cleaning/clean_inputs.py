@@ -7,9 +7,19 @@ def load_and_clean_data(input_path):
     df_historical = pd.read_excel(os.path.join(input_path, "DDMRP Project Data.xlsx"), sheet_name="Historical Data", skiprows=4)
     df_prod_plan = pd.read_excel(os.path.join(input_path, "DDMRP Project Data.xlsx"), sheet_name="Production Plan", skiprows=4)
     df_moq = pd.read_excel(os.path.join(input_path, "Artikel & Materialien FGR+.XLSX"), sheet_name="Artikel FGR+", skiprows=1)
-    df_vorschau = pd.read_excel(os.path.join(input_path, "Vorschauliste KW30 bis 08.08.2025.xlsm"), sheet_name="Vorschauliste")
     df_stock_on_hand = pd.read_excel(os.path.join(input_path, "DDMRP Project Data.xlsx"), sheet_name="Stock On Hand", skiprows=4)
+    vorschau_files = [
+        f for f in os.listdir(input_path)
+        if f.lower().startswith("vorschauliste")
+           and f.lower().endswith((".xls", ".xlsx", ".xlsm"))
+    ]
+    if not vorschau_files:
+        raise FileNotFoundError("No Vorschauliste file found in input directory")
 
+    df_vorschau = pd.read_excel(
+        os.path.join(input_path, vorschau_files[0]),
+        sheet_name="Vorschauliste"
+    )
 
     # --- Sales History ---
     df_sales = df_historical[df_historical["Key Figure"] == "GSCRM Actual Sales and Unconstrained Demand"].copy()

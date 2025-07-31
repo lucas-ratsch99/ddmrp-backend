@@ -142,7 +142,7 @@ def main():
 
             try:
                 # Use lead time instead of +1
-                next_week_index = sorted_weeks.index(current_week) + lt_weeks - 1
+                next_week_index = sorted_weeks.index(current_week) + lt_weeks
                 target_week = sorted_weeks[next_week_index]
                 print(f"📦 SKU {sku}: production target week (after {lt_weeks} week(s) lead time): {target_week}")
             except IndexError:

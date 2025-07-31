@@ -8,6 +8,7 @@ def load_and_clean_data(input_path):
     df_prod_plan = pd.read_excel(os.path.join(input_path, "DDMRP Project Data.xlsx"), sheet_name="Production Plan", skiprows=4)
     df_moq = pd.read_excel(os.path.join(input_path, "Artikel & Materialien FGR+.XLSX"), sheet_name="Artikel FGR+", skiprows=1)
     df_vorschau = pd.read_excel(os.path.join(input_path, "Vorschauliste KW30 bis 08.08.2025.xlsm"), sheet_name="Vorschauliste")
+    df_stock_on_hand = pd.read_excel(os.path.join(input_path, "DDMRP Project Data.xlsx"), sheet_name="Stock On Hand", skiprows=4)
 
 
     # --- Sales History ---
@@ -22,7 +23,7 @@ def load_and_clean_data(input_path):
     df_sales = df_sales[["Product ID", "Product Desc", "MRP Type", "Week", "Quantity Sold"]]
 
     # --- Inventory ---
-    df_inv = df_historical[df_historical["Key Figure"] == "GSCRM Projected Stock (Unconstrained Demand)"].copy()
+    df_inv = df_stock_on_hand[df_stock_on_hand["Key Figure"] == "Stock On Hand"].copy()
     df_inv = df_inv.melt(
         id_vars=["Product ID", "Product Desc", "MRP Type Indicator"],
         var_name="Week",

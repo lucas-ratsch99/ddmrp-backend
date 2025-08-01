@@ -297,19 +297,26 @@ async def upload_excel(file: UploadFile = File(...)):
 @router.post("/clear-files")
 async def clear_files():
     """
-    Remove all input and output files (except .keep) so that a new analysis can start cleanly.
+    Remove all input and output files (except .keep and other static inputs) so that a new analysis can start cleanly.
     """
     try:
-        # Delete input files
+        # Define files that should never be deleted
+        protected_inputs = {".keep", "Artikel & Materialien FGR+.XLSX"}
+
+        # Delete input files except protected ones
         for f in glob.glob(os.path.join(INPUTS_DIR, "*")):
-            if os.path.basename(f) != ".keep" and os.path.isfile(f):
+            filename = os.path.basename(f)
+            if filename not in protected_inputs and os.path.isfile(f):
                 os.remove(f)
-        # Delete output files
+
+        # Delete output files except .keep
         for f in glob.glob(os.path.join(OUTPUTS_DIR, "*")):
-            if os.path.isfile(f):
+            filename = os.path.basename(f)
+            if filename != ".keep" and os.path.isfile(f):
                 os.remove(f)
-        logger.info("🧹 Cleared all uploaded and output files")
-        return {"status": "success", "message": "Files cleared"}
+
+        logger.info("🧹 Cleared all uploaded and output files (except protected ones)")
+        return {"status": "success", "message": "Files cleared (protected files preserved)"}
     except Exception as e:
         logger.error(f"Error clearing files: {e}")
         return {"status": "error", "message": f"Failed to clear files: {e}"}

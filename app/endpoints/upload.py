@@ -286,3 +286,23 @@ async def upload_excel(file: UploadFile = File(...)):
     except Exception as e:
         logger.error(f"❌ Legacy upload error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error uploading file: {str(e)}")
+
+@router.post("/clear-files")
+async def clear_files():
+    """
+    Remove all input and output files (except .keep) so that a new analysis can start cleanly.
+    """
+    try:
+        # Delete input files
+        for f in glob.glob(os.path.join(INPUTS_DIR, "*")):
+            if os.path.basename(f) != ".keep" and os.path.isfile(f):
+                os.remove(f)
+        # Delete output files
+        for f in glob.glob(os.path.join(OUTPUTS_DIR, "*")):
+            if os.path.isfile(f):
+                os.remove(f)
+        logger.info("🧹 Cleared all uploaded and output files")
+        return {"status": "success", "message": "Files cleared"}
+    except Exception as e:
+        logger.error(f"Error clearing files: {e}")
+        return {"status": "error", "message": f"Failed to clear files: {e}"}

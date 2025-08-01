@@ -35,6 +35,13 @@ def safe_run_analysis():
 
         logger.info("🚀 Starting DDMRP analysis...")
 
+        # 🧹 Clear previous output files (except .keep) before running analysis
+        for filename in os.listdir(OUTPUTS_DIR):
+            file_path = os.path.join(OUTPUTS_DIR, filename)
+            if os.path.isfile(file_path) and filename != ".keep":
+                os.remove(file_path)
+        logger.info("🧹 Cleared old output files.")
+
         # Import the analysis function only when needed to avoid import errors
         from app.old_main import main as run_ddmrp_analysis
 

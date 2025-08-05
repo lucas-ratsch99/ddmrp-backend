@@ -3,9 +3,9 @@ def calculate_adu(sales_series, num_weeks):
     return sales_series.sum() / num_weeks if num_weeks > 0 else 0
 
 def classify_lead_time_factor(lead_time_weeks):
-    if lead_time_weeks <= 1:      # Short Lead Time
+    if lead_time_weeks <= 2:      # Short Lead Time
         return 0.75               # 61–100%
-    elif lead_time_weeks <= 3:    # Medium Lead Time
+    elif lead_time_weeks <= 4:    # Medium Lead Time
         return 0.5                # 41–60%
     else:                         # Long Lead Time
         return 0.3                # 20–40%

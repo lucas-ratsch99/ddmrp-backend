@@ -237,7 +237,7 @@ async def get_analysis_summary() -> Dict[str, Any]:
         raise HTTPException(status_code=500, detail=f"Error retrieving analysis summary: {str(e)}")
 
 
-@router.get("sku-details/{sku_id}")
+@router.get("/ddmrp/sku-details/{sku_id}")
 def get_sku_details(sku_id: str):
     file_path = f"data/outputs/SKU_{sku_id}.xlsx"
 
@@ -248,55 +248,37 @@ def get_sku_details(sku_id: str):
         })
 
     try:
-        xls = pd.ExcelFile(file_path)
-        df_master = pd.read_excel(xls, sheet_name="Master Data")
+        df = pd.read_excel(file_path, sheet_name="Master Data")
 
-        # Basic fields
-        product_description = df_master["Product Desc"].iloc[0]
-        moq = df_master["MOQ"].iloc[0]
-        adu = df_master["ADU"].iloc[0]
-        lead_time = df_master["Lead Time"].iloc[0]
-        mrp_type = df_master["MRP Type"].iloc[0]
-
-        # Buffer zones
-        red_zone = df_master["Red Zone"].iloc[0]
-        yellow_zone = df_master["Yellow Zone"].iloc[0]
-        green_zone = df_master["Green Zone"].iloc[0]
-        top_of_red = df_master["Top of Red"].iloc[0]
-        top_of_yellow = df_master["Top of Yellow"].iloc[0]
-        top_of_green = df_master["Top of Green"].iloc[0]
-
-        # Historical
-        historical_data = []
-        for _, row in df_master.iterrows():
-            if pd.notnull(row["Week"]):
-                historical_data.append({
-                    "week": row["Week"],
-                    "inventory": row["Inventory"] if "Inventory" in row else None,
-                    "quantitySold": row["Quantity Sold"] if "Quantity Sold" in row else None,
-                    "productionOrders": row["Production Orders"] if "Production Orders" in row else None
-                })
-
-        return {
-            "sku_id": sku_id,
-            "Product Description": product_description,
-            "Description": product_description,  # Optional alias
-            "MOQ": moq,
-            "ADU": adu,
-            "Lead Time": lead_time,
-            "Lead Time (days)": lead_time,
-            "MRP Type": mrp_type,
-            "Red Zone": red_zone,
-            "Yellow Zone": yellow_zone,
-            "Green Zone": green_zone,
-            "Top of Red": top_of_red,
-            "Top of Yellow": top_of_yellow,
-            "Top of Green": top_of_green,
-            "historical": historical_data
+        # Use the first row to extract fixed fields (assuming all rows have the same value)
+        first_row = df.iloc[0]
+        result = {
+            "sku_id": str(first_row["Product ID"]),
+            "Product Description": first_row["Product Desc"],
+            "MOQ": int(first_row["MOQ"]),
+            "ADU": float(first_row["ADU"]),
+            "Lead Time": int(first_row["Lead Time"]),
+            "MRP Type": first_row["MRP Type"],
+            "Red Zone": float(first_row["Red Zone"]),
+            "Yellow Zone": float(first_row["Yellow Zone"]),
+            "Green Zone": float(first_row["Green Zone"]),
         }
+
+        # Historical Data
+        historical = []
+        for _, row in df.iterrows():
+            historical.append({
+                "week": row["Week"],
+                "inventory": int(row["Inventory"]),
+                "quantitySold": int(row["Quantity Sold"]),
+                "productionOrders": int(row["Production Orders"])
+            })
+        result["historical"] = historical
+
+        return result
 
     except Exception as e:
         raise HTTPException(status_code=500, detail={
-            "error": "Internal Server Error",
+            "error": "Processing failed",
             "message": str(e)
         })

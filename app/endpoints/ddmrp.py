@@ -3,6 +3,7 @@ from typing import Dict, Any, List
 import sys
 import os
 import pandas as pd
+import math
 import json
 
 
@@ -250,35 +251,47 @@ def get_sku_details(sku_id: str):
     try:
         df = pd.read_excel(file_path, sheet_name="Master Data")
 
-        # Use the first row to extract fixed fields (assuming all rows have the same value)
+        if df.empty:
+            raise ValueError("Master Data sheet is empty")
+
         first_row = df.iloc[0]
+
+        def safe_int(value, default=0):
+            return int(value) if pd.notna(value) and not math.isnan(value) else default
+
+        def safe_float(value, default=0.0):
+            return float(value) if pd.notna(value) and not math.isnan(value) else default
+
+        def safe_str(value, default="N/A"):
+            return str(value) if pd.notna(value) else default
+
         result = {
-            "sku_id": str(first_row["Product ID"]),
-            "Product Description": first_row["Product Desc"],
-            "MOQ": int(first_row["MOQ"]),
-            "ADU": float(first_row["ADU"]),
-            "Lead Time": int(first_row["Lead Time"]),
-            "MRP Type": first_row["MRP Type"],
-            "Red Zone": float(first_row["Red Zone"]),
-            "Yellow Zone": float(first_row["Yellow Zone"]),
-            "Green Zone": float(first_row["Green Zone"]),
+            "sku_id": safe_str(first_row.get("Product ID")),
+            "Product Description": safe_str(first_row.get("Product Desc")),
+            "MOQ": safe_int(first_row.get("MOQ")),
+            "ADU": safe_float(first_row.get("ADU")),
+            "Lead Time": safe_int(first_row.get("Lead Time")),
+            "MRP Type": safe_str(first_row.get("MRP Type")),
+            "Red Zone": safe_float(first_row.get("Red Zone")),
+            "Yellow Zone": safe_float(first_row.get("Yellow Zone")),
+            "Green Zone": safe_float(first_row.get("Green Zone")),
+            "historical": []
         }
 
-        # Historical Data
-        historical = []
         for _, row in df.iterrows():
-            historical.append({
-                "week": row["Week"],
-                "inventory": int(row["Inventory"]),
-                "quantitySold": int(row["Quantity Sold"]),
-                "productionOrders": int(row["Production Orders"])
-            })
-        result["historical"] = historical
+            week = row.get("Week")
+            if pd.notna(week):
+                result["historical"].append({
+                    "week": safe_str(week),
+                    "inventory": safe_int(row.get("Inventory")),
+                    "quantitySold": safe_int(row.get("Quantity Sold")),
+                    "productionOrders": safe_int(row.get("Production Orders"))
+                })
 
         return result
 
     except Exception as e:
         raise HTTPException(status_code=500, detail={
-            "error": "Processing failed",
+            "error": "Internal Server Error",
             "message": str(e)
         })

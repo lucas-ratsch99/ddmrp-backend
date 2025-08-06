@@ -237,7 +237,7 @@ async def get_analysis_summary() -> Dict[str, Any]:
         raise HTTPException(status_code=500, detail=f"Error retrieving analysis summary: {str(e)}")
 
 
-@router.get("/ddmrp/sku-details/{sku_id}")
+@router.get("sku-details/{sku_id}")
 def get_sku_details(sku_id: str):
     file_path = f"data/outputs/SKU_{sku_id}.xlsx"
 

@@ -1,3 +1,5 @@
+import pandas as pd
+
 def calculate_adu(sales_series, num_weeks):
     """Calculates Average Weekly Usage (ADU in weeks)"""
     return sales_series.sum() / num_weeks if num_weeks > 0 else 0
@@ -25,7 +27,14 @@ def classify_variability_factor(cov, all_covs, sku=None):
     else:
         return 0.8
 
-def calculate_ddmrp_fields(df, moq, lead_time_weeks, all_covs=None, reference_week=None, is_340=False, sku=None):
+def calculate_ddmrp_fields(df: pd.DataFrame,
+                           moq: float,
+                           lead_time_weeks: float,
+                           daf: float = 1.0,
+                           all_covs=None,
+                           reference_week=None,
+                           is_340: bool = False,
+                           sku=None) -> pd.DataFrame:
     if df.empty:
         return df
 
@@ -44,25 +53,25 @@ def calculate_ddmrp_fields(df, moq, lead_time_weeks, all_covs=None, reference_we
 
     ltf = classify_lead_time_factor(lead_time_weeks)
     vf = classify_variability_factor(cov, all_covs, sku) if all_covs is not None else 0.5
-    daf = 1.0
 
-    # Buffer zones in weekly units
-    yellow = weekly_adu * lead_time_weeks
+    # Adjust ADU by DAF before calculating zones
+    adjusted_adu = weekly_adu * daf
 
-    # MOQ logic for 340 mm
+    # Buffer zones (DAF applied)
+    yellow = adjusted_adu * lead_time_weeks
+    # MOQ logic remains unchanged – apply DAF to MOQ comparison as well
     if is_340:
-        adjusted_moq = max(moq, 4 * weekly_adu)
+        adjusted_moq = max(moq, 4 * adjusted_adu)
     else:
         adjusted_moq = moq
 
-    green = max(weekly_adu * lead_time_weeks * ltf, adjusted_moq)
-
-    red_base = weekly_adu * lead_time_weeks * ltf
+    green = max(adjusted_adu * lead_time_weeks * ltf, adjusted_moq)
+    red_base = adjusted_adu * lead_time_weeks * ltf
     red_safety = red_base * vf
     red_zone = red_base + red_safety
 
-    df['Weekly ADU'] = weekly_adu
-    df['ADU'] = weekly_adu  # (ADU = average weekly demand here)
+    df['Weekly ADU'] = weekly_adu  # store original ADU for reference
+    df['Adjusted ADU'] = adjusted_adu  # store ADU with DAF applied
     df['CoV'] = cov
     df['Lead Time Factor'] = ltf
     df['Variability Factor'] = vf

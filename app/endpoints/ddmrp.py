@@ -332,3 +332,31 @@ async def update_artikel_materialien(records: List[Dict[str, Any]]):
         return {"status": "success", "rows": len(df_new)}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to update file: {e}")
+
+
+@router.post("/artikel-materialien/add")
+async def add_artikel_row(record: Dict[str, Any]):
+    """
+    Append a single row (record) to the 'Artikel FGR+' tab.
+    The record should include the same column names used in the sheet,
+    such as 'Material', 'Material short text', 'Minimum batch size',
+    'Rounding value', 'Lead Time', and 'DAF'.
+    """
+    file_path = os.path.join("data", "inputs", "Artikel & Materialien FGR+.XLSX")
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Artikel file not found")
+    try:
+        df = pd.read_excel(file_path, sheet_name="Artikel FGR+", skiprows=1)
+        # Append the new record
+        df = pd.concat([df, pd.DataFrame([record])], ignore_index=True)
+        # Save back to Excel (preserving other sheets)
+        book = openpyxl.load_workbook(file_path)
+        if "Artikel FGR+" in book.sheetnames:
+            idx = book.sheetnames.index("Artikel FGR+")
+            book.remove(book.worksheets[idx])
+        with pd.ExcelWriter(file_path, engine="openpyxl", mode="a") as writer:
+            writer.book = book
+            df.to_excel(writer, sheet_name="Artikel FGR+", index=False)
+        return {"status": "success", "rows": len(df)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to add row: {e}")

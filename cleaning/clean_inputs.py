@@ -33,15 +33,37 @@ def load_and_clean_data(input_path):
     df_sales = df_sales[["Product ID", "Product Desc", "MRP Type", "Week", "Quantity Sold"]]
 
     # --- Inventory ---
-    df_inv = df_stock_on_hand[df_stock_on_hand["Key Figure"] == "Stock on Hand"].copy()
-    df_inv = df_inv.melt(
+    # --- Inventory history from Historical Data ---
+    # Historical projected stock (multiple week columns) for each SKU
+    df_proj_inv = df_historical[df_historical["Key Figure"] == "GSCRM Projected Stock (Unconstrained Demand)"].copy()
+    df_proj_inv = df_proj_inv.melt(
         id_vars=["Product ID", "Product Desc", "MRP Type Indicator"],
         var_name="Week",
         value_name="Inventory"
     )
-    df_inv = df_inv[df_inv["Week"].str.contains("W")]
-    df_inv["MRP Type"] = df_inv["MRP Type Indicator"].map({"X0": "MTS", "X7": "MTO"})
-    df_inv = df_inv[["Product ID", "Product Desc", "MRP Type", "Week", "Inventory"]]
+    df_proj_inv = df_proj_inv[df_proj_inv["Week"].str.contains("W")]  # only week columns
+    df_proj_inv["MRP Type"] = df_proj_inv["MRP Type Indicator"].map({"X0": "MTS", "X7": "MTO"})
+    df_proj_inv = df_proj_inv[["Product ID", "Product Desc", "MRP Type", "Week", "Inventory"]]
+    df_proj_inv["source"] = "historical"
+
+    # --- Stock on Hand (current week only) ---
+    df_soh_inv = df_stock_on_hand[df_stock_on_hand["Key Figure"] == "Stock on Hand"].copy()
+    df_soh_inv = df_soh_inv.melt(
+        id_vars=["Product ID", "Product Desc", "MRP Type Indicator"],
+        var_name="Week",
+        value_name="Inventory"
+    )
+    df_soh_inv = df_soh_inv[df_soh_inv["Week"].str.contains("W")]
+    df_soh_inv["MRP Type"] = df_soh_inv["MRP Type Indicator"].map({"X0": "MTS", "X7": "MTO"})
+    df_soh_inv = df_soh_inv[["Product ID", "Product Desc", "MRP Type", "Week", "Inventory"]]
+    df_soh_inv["source"] = "stock_on_hand"
+
+    # Combine historical and stock‑on‑hand values; let stock‑on‑hand override if both exist
+    df_inv_combined = pd.concat([df_proj_inv, df_soh_inv], ignore_index=True)
+    df_inv_combined = df_inv_combined.sort_values(by="source")  # historical first, then stock_on_hand
+    df_inv_combined = df_inv_combined.drop_duplicates(subset=["Product ID", "Week"], keep="last")
+    df_inv_combined = df_inv_combined.drop(columns=["source"])
+    df_inv = df_inv_combined[["Product ID", "Product Desc", "MRP Type", "Week", "Inventory"]]
 
     # --- Production Orders ---
     df_orders = df_prod_plan[df_prod_plan["Key Figure"] == "Open Production Orders (Adjusted by PLT)"].copy()
@@ -55,19 +77,22 @@ def load_and_clean_data(input_path):
     df_orders = df_orders[["Product ID", "Product Desc", "MRP Type", "Week", "Production Orders"]]
 
     # --- MOQ ---
-    df_moq_clean = df_moq[["Material", "Material short text", "Minimum batch size", "Rounding value"]].copy()
+    df_moq_clean = df_moq[["Material", "Material short text", "Minimum batch size", "Rounding value", "Lead Time", "DAF"]].copy()
     df_moq_clean = df_moq_clean.rename(columns={
         "Material": "Product ID",
         "Material short text": "Product Desc",
         "Minimum batch size": "MOQ",
-        "Rounding value": "Rounding Value"
+        "Rounding value": "Rounding Value",
+        "Lead Time": "Lead Time",
+        "DAF": "DAF"
     })
 
     # Flag 340 mm SKUs
     df_moq_clean["Is_340"] = df_moq_clean["Product Desc"].str.contains("340", case=False, na=False)
 
-    # Set lead time: 4 weeks for 340 mm, otherwise 3
-    df_moq_clean["Lead Time"] = df_moq_clean["Is_340"].apply(lambda x: 4 if x else 3)
+    # Convert lead time and DAF to numeric values (default to sensible values if blank).
+    df_moq_clean["Lead Time"] = pd.to_numeric(df_moq_clean["Lead Time"], errors="coerce").fillna(3)
+    df_moq_clean["DAF"] = pd.to_numeric(df_moq_clean["DAF"], errors="coerce").fillna(1.0)
 
     # --- Open Sales Orders ---
     # Filter to only FGR materials

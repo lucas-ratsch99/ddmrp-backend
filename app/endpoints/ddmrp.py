@@ -5,6 +5,7 @@ import os
 import pandas as pd
 import math
 import json
+import openpyxl
 
 
 # Add the parent directories to sys.path
@@ -295,3 +296,39 @@ def get_sku_details(sku_id: str):
             "error": "Internal Server Error",
             "message": str(e)
         })
+
+
+@router.get("/artikel-materialien")
+async def get_artikel_materialien() -> List[Dict[str, Any]]:
+    """
+    Return the contents of the 'Artikel & Materialien FGR+' sheet as JSON.
+    """
+    file_path = os.path.join("data", "inputs", "Artikel & Materialien FGR+.XLSX")
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Artikel & Materialien file not found")
+    df = pd.read_excel(file_path, sheet_name="Artikel FGR+", skiprows=1)
+    return df.to_dict(orient="records")
+
+@router.post("/artikel-materialien")
+async def update_artikel_materialien(records: List[Dict[str, Any]]):
+    """
+    Accept a list of row dictionaries and overwrite the 'Artikel FGR+' tab with the new data.
+    """
+    file_path = os.path.join("data", "inputs", "Artikel & Materialien FGR+.XLSX")
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Artikel & Materialien file not found")
+    try:
+        # Load the entire workbook so that other sheets are preserved
+        book = openpyxl.load_workbook(file_path)
+        # Remove the old sheet if it exists
+        if "Artikel FGR+" in book.sheetnames:
+            idx = book.sheetnames.index("Artikel FGR+")
+            book.remove(book.worksheets[idx])
+        # Create a DataFrame from posted data and write it as the new sheet
+        df_new = pd.DataFrame(records)
+        with pd.ExcelWriter(file_path, engine='openpyxl', mode='a') as writer:
+            writer.book = book
+            df_new.to_excel(writer, sheet_name="Artikel FGR+", index=False)
+        return {"status": "success", "rows": len(df_new)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to update file: {e}")

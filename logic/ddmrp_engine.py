@@ -72,6 +72,7 @@ def calculate_ddmrp_fields(df: pd.DataFrame,
 
     df['Weekly ADU'] = weekly_adu  # store original ADU for reference
     df['Adjusted ADU'] = adjusted_adu  # store ADU with DAF applied
+    df['ADU'] = adjusted_adu
     df['CoV'] = cov
     df['Lead Time Factor'] = ltf
     df['Variability Factor'] = vf

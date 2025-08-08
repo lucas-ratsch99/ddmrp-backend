@@ -100,15 +100,20 @@ def main():
         master_df = master_df.sort_values(by="Week")
 
         # Add MOQ/Lead Time to each row
+        # After merging data (inside for sku in unique_skus):
         moq = sku_moq["MOQ"].iloc[0] if not sku_moq.empty else 0
         lt_weeks = sku_moq["Lead Time"].iloc[0] if not sku_moq.empty else 2
+        daf = sku_moq["DAF"].iloc[0] if not sku_moq.empty else 1.0
         is_340 = sku_moq["Is_340"].iloc[0] if not sku_moq.empty and "Is_340" in sku_moq.columns else False
         rounding_value = sku_moq["Rounding Value"].iloc[
             0] if not sku_moq.empty and "Rounding Value" in sku_moq.columns else None
+
+        # Save MOQ, lead time and DAF on each row
         master_df["MOQ"] = moq
         master_df["Lead Time"] = lt_weeks
+        master_df["DAF"] = daf
 
-        # Calculate DDMRP fields
+        # Convert inventory and production orders to numeric
         master_df['Inventory'] = pd.to_numeric(master_df['Inventory'], errors='coerce').fillna(0)
         master_df['Production Orders'] = pd.to_numeric(master_df['Production Orders'], errors='coerce').fillna(0)
 
@@ -131,6 +136,7 @@ def main():
             df=master_df,
             moq=moq,
             lead_time_weeks=lt_weeks,
+            daf=daf,
             all_covs=all_covs_data,
             reference_week=current_week,
             is_340=is_340,
@@ -187,6 +193,7 @@ def main():
         # Output current week's snapshot
         output_data = {
             "SKU": sku,
+            "Product Desc": master_df["Product Desc"].iloc[0],
             "Current Week": current_week,
             "Target Production Week": target_week,
             "Weekly ADU": next_row["Weekly ADU"].values[0],

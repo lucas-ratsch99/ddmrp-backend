@@ -99,7 +99,7 @@ def load_and_clean_data(input_path):
     df_vorschau = df_vorschau[df_vorschau["Materialkurztext"].str.contains("FGR", na=False)]
 
     df_sales_orders = df_vorschau[[
-        "Material", "Materialkurztext", "Bestelldat", "WL.Datum", " KumAuMenge", " OffnEintMg"
+        "Material", "Materialkurztext", "Bestelldat", "WL.Datum", "  KumAuMenge", "  OffnEintMg"
     ]].copy()
 
     df_sales_orders = df_sales_orders.rename(columns={
@@ -107,8 +107,8 @@ def load_and_clean_data(input_path):
         "Materialkurztext": "Product Desc",
         "Bestelldat": "Order Date",
         "WL.Datum": "Due Date",
-        " KumAuMenge": "Ordered Qty",
-        " OffnEintMg": "Open Qty"
+        "  KumAuMenge": "Ordered Qty",
+        "  OffnEintMg": "Open Qty"
     })
 
     def clean_product_id(pid):

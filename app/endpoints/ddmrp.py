@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import FileResponse
 from typing import Dict, Any, List
 import sys
 import os
@@ -360,3 +361,47 @@ async def add_artikel_row(record: Dict[str, Any]):
         return {"status": "success", "rows": len(df)}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to add row: {e}")
+
+
+@router.get("/artikel-materialien/download")
+async def download_artikel_file():
+    """
+    Download the current Artikel & Materialien file.
+    """
+    file_path = os.path.join("data", "inputs", "Artikel & Materialien FGR+.XLSX")
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Artikel file not found")
+    return FileResponse(file_path, filename="Artikel_Materialien.xlsx")
+
+@router.post("/artikel-materialien/update-fields")
+async def update_artikel_fields(records: List[Dict[str, Any]]):
+    """
+    Update MOQ, Rounding Value and Lead Time for multiple SKUs.
+    Expect a list of objects with keys: Material (SKU), MOQ, Rounding Value, Lead Time.
+    """
+    file_path = os.path.join("data", "inputs", "Artikel & Materialien FGR+.XLSX")
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Artikel file not found")
+
+    # Load the sheet
+    df = pd.read_excel(file_path, sheet_name="Artikel FGR+", skiprows=1)
+    for rec in records:
+        sku = rec.get("Material")
+        mask = df["Material"] == sku
+        if "MOQ" in rec:
+            df.loc[mask, "Minimum batch size"] = rec["MOQ"]
+        if "Rounding Value" in rec:
+            df.loc[mask, "Rounding value"] = rec["Rounding Value"]
+        if "Lead Time" in rec:
+            df.loc[mask, "Lead Time"] = rec["Lead Time"]
+
+    # Preserve other sheets and overwrite the edited sheet
+    book = openpyxl.load_workbook(file_path)
+    if "Artikel FGR+" in book.sheetnames:
+        idx = book.sheetnames.index("Artikel FGR+")
+        book.remove(book.worksheets[idx])
+    with pd.ExcelWriter(file_path, engine="openpyxl", mode="a") as writer:
+        writer.book = book
+        df.to_excel(writer, sheet_name="Artikel FGR+", index=False)
+
+    return {"status": "success", "updated_rows": len(records)}

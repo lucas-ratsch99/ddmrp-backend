@@ -1,31 +1,37 @@
 import pandas as pd
+import os
+import json
+
+# Load thresholds from JSON
+CONFIG_PATH = os.path.join("data", "config", "thresholds.json")
+with open(CONFIG_PATH) as f:
+    THRESHOLDS = json.load(f)
 
 def calculate_adu(sales_series, num_weeks):
     """Calculates Average Weekly Usage (ADU in weeks)"""
     return sales_series.sum() / num_weeks if num_weeks > 0 else 0
 
-def classify_lead_time_factor(lead_time_weeks):
-    if lead_time_weeks <= 2:      # Short Lead Time
-        return 0.75               # 61–100%
-    elif lead_time_weeks <= 4:    # Medium Lead Time
-        return 0.5                # 41–60%
-    else:                         # Long Lead Time
-        return 0.3                # 20–40%
+def classify_lead_time_factor(lead_time_weeks: float) -> float:
+    lt_thresh = THRESHOLDS["lead_time_thresholds"]
+    lt_factors = THRESHOLDS["lead_time_factors"]
+    if lead_time_weeks <= lt_thresh[0]:
+        return lt_factors[0]
+    elif lead_time_weeks <= lt_thresh[1]:
+        return lt_factors[1]
+    return lt_factors[2]
 
-def classify_variability_factor(cov, all_covs, sku=None):
-    """Use quantile-based classification across all SKUs to self-normalize."""
+def classify_variability_factor(cov: float, all_covs: pd.Series, sku: str = None) -> float:
     if sku == "573602" or sku == 573602:
-        return 1.5
+        return 1.5  # leave your special case as is
+    # Quantiles are global thresholds
+    low_q, high_q = THRESHOLDS["variability_quantiles"]
+    vf = THRESHOLDS["variability_factors"]
 
-    low_thresh = all_covs.quantile(0.33)
-    high_thresh = all_covs.quantile(0.66)
-
-    if cov <= low_thresh:
-        return 0.3
-    elif cov <= high_thresh:
-        return 0.5
-    else:
-        return 0.8
+    if cov <= all_covs.quantile(low_q):
+        return vf[0]
+    elif cov <= all_covs.quantile(high_q):
+        return vf[1]
+    return vf[2]
 
 def calculate_ddmrp_fields(df: pd.DataFrame,
                            moq: float,

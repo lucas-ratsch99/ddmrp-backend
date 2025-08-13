@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Body
 from fastapi.responses import FileResponse
 from typing import Dict, Any, List
 import sys
@@ -15,7 +15,7 @@ root_dir = os.path.dirname(os.path.dirname(current_dir))
 sys.path.append(root_dir)
 
 # Import the existing function that reads from processed data
-from logic.ddmrp_engine import calculate_ddmrp_plan
+from logic.ddmrp_engine import calculate_ddmrp_plan, CONFIG_PATH, THRESHOLDS
 
 router = APIRouter()
 
@@ -413,3 +413,25 @@ async def download_production_plan():
     if not os.path.exists(path):
         raise HTTPException(status_code=404, detail="Production plan not found")
     return FileResponse(path, filename="production_plan.csv")
+
+
+@router.get("/config/thresholds")
+def get_thresholds():
+    """
+    Return the current lead time and variability thresholds.
+    """
+    return THRESHOLDS
+
+@router.post("/config/thresholds")
+def update_thresholds(new_cfg: Dict[str, Any] = Body(...)):
+    """
+    Overwrite the thresholds JSON file and reload the in-memory THRESHOLDS.
+    Expect the same structure as thresholds.json.
+    """
+    # Basic validation could be added here
+    with open(CONFIG_PATH, "w") as f:
+        json.dump(new_cfg, f)
+    # Reload in-memory config
+    global THRESHOLDS
+    THRESHOLDS = new_cfg
+    return {"status": "success", "message": "Thresholds updated"}

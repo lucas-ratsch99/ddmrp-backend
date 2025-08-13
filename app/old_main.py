@@ -239,6 +239,22 @@ def main():
     summary_df = pd.DataFrame(all_results)
     summary_df.to_csv(summary_output_path, index=False)
 
+    # Build the required production plan columns
+    summary_df["PRDID"] = summary_df["SKU"].astype(str) + ("0" * 12) + "-1"
+    summary_df["LOCID"] = "1568"
+    summary_df["KEYFIGUREDATE"] = summary_df["Target Production Week"]
+    summary_df["SOURCEID"] = summary_df["PRDID"] + summary_df["LOCID"] + "0001S"
+    summary_df["ZADJPRODUCTIONRECEIPTPLT"] = summary_df["Recommended Production"]
+
+    production_plan = summary_df[[
+        "PRDID", "LOCID", "KEYFIGUREDATE",
+        "SOURCEID", "ZADJPRODUCTIONRECEIPTPLT"
+    ]]
+
+    plan_path = os.path.join(OUTPUTS_DIR, "production_plan.csv")
+    production_plan.to_csv(plan_path, index=False)
+    logging.info(f"📄 Production plan written to: {plan_path}")
+
     logging.info(f"💾 Saving summary file to: {summary_output_path}")
     print(f"\n📄 DDMRP summary for all SKUs written to:\n{summary_output_path}")
 

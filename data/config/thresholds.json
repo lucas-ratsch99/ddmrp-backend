@@ -1,0 +1,6 @@
+{
+  "lead_time_thresholds": [2, 4],
+  "lead_time_factors": [0.75, 0.5, 0.3],
+  "variability_quantiles": [0.33, 0.66],
+  "variability_factors": [0.3, 0.5, 0.8]
+}

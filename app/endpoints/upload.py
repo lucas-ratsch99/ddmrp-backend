@@ -1,4 +1,5 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi.responses import FileResponse
 from typing import Optional
 import shutil
 import os
@@ -320,3 +321,32 @@ async def clear_files():
     except Exception as e:
         logger.error(f"Error clearing files: {e}")
         return {"status": "error", "message": f"Failed to clear files: {e}"}
+
+
+@router.post("/clean-inputs")
+async def clean_inputs():
+    """
+    Remove all user-uploaded files (inputs and outputs) except the .keep placeholders.
+    """
+    for folder in [INPUTS_DIR, OUTPUTS_DIR, PROCESSED_DIR]:
+        for fname in os.listdir(folder):
+            if fname != ".keep":
+                os.remove(os.path.join(folder, fname))
+    return {"status": "success", "message": "All input/output files cleared."}
+
+@router.post("/run-analysis")
+async def run_analysis_now():
+    """
+    Manually trigger DDMRP analysis with the currently uploaded files.
+    """
+    results = safe_run_analysis()
+    return {"status": "success", "processed": len(results)}
+
+@router.get("/analysis-status")
+async def analysis_status():
+    """
+    Return a simple flag indicating whether an analysis is currently running.
+    (For now, check if the summary CSV exists to signal completion.)
+    """
+    output_path = os.path.join(OUTPUTS_DIR, "ddmrp_weekly_production_plan.csv")
+    return {"running": not os.path.exists(output_path)}

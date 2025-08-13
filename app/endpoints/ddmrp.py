@@ -425,13 +425,19 @@ def get_thresholds():
 @router.post("/config/thresholds")
 def update_thresholds(new_cfg: Dict[str, Any] = Body(...)):
     """
-    Overwrite the thresholds JSON file and reload the in-memory THRESHOLDS.
-    Expect the same structure as thresholds.json.
+    Overwrite the thresholds JSON file and reload the in-memory THRESHOLDS
+    used by both this module and the DDMRP engine. Expects the same
+    structure as thresholds.json.
     """
-    # Basic validation could be added here
     with open(CONFIG_PATH, "w") as f:
         json.dump(new_cfg, f)
-    # Reload in-memory config
+
+    # update this module's THRESHOLDS
     global THRESHOLDS
     THRESHOLDS = new_cfg
+
+    # also update the engine’s THRESHOLDS
+    from logic import ddmrp_engine
+    ddmrp_engine.THRESHOLDS = new_cfg
+
     return {"status": "success", "message": "Thresholds updated"}

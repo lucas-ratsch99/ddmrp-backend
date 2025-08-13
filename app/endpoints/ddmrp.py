@@ -405,3 +405,11 @@ async def update_artikel_fields(records: List[Dict[str, Any]]):
         df.to_excel(writer, sheet_name="Artikel FGR+", index=False)
 
     return {"status": "success", "updated_rows": len(records)}
+
+
+@router.get("/production-plan/download")
+async def download_production_plan():
+    path = os.path.join("data", "outputs", "production_plan.csv")
+    if not os.path.exists(path):
+        raise HTTPException(status_code=404, detail="Production plan not found")
+    return FileResponse(path, filename="production_plan.csv")

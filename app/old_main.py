@@ -240,7 +240,7 @@ def main():
     summary_df.to_csv(summary_output_path, index=False)
 
     # Build the required production plan columns
-    summary_df["PRDID"] = summary_df["SKU"].astype(str) + ("0" * 12) + "-1"
+    summary_df["PRDID"] = ("0" * 12) + summary_df["SKU"].astype(str)  + "-1"
     summary_df["LOCID"] = "1568"
     summary_df["KEYFIGUREDATE"] = summary_df["Target Production Week"]
     summary_df["SOURCEID"] = summary_df["PRDID"] + summary_df["LOCID"] + "0001S"

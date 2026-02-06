@@ -3,7 +3,7 @@ import os
 import json
 
 # Load thresholds from JSON
-base_dir = os.path.dirname(os.path.dirname(os.path.abspath(_file_)))
+base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CONFIG_PATH = os.path.join(base_dir, "data", "config", "thresholds.json")
 with open(CONFIG_PATH) as f:
     THRESHOLDS = json.load(f)

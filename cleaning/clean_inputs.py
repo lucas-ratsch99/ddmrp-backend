@@ -112,9 +112,8 @@ def load_and_clean_data(input_path):
     df_moq_clean["DAF"] = pd.to_numeric(df_moq_clean["DAF"], errors="coerce").fillna(1.0)
 
     # --- Open Sales Orders ---
-    # Numeric material filter
-    df_vorschau["Material"] = df_vorschau["Material"].astype(str)
-    df_vorschau = df_vorschau[df_vorschau["Material"].str.isdigit()]
+    # Filter to only FGR materials
+    df_vorschau = df_vorschau[df_vorschau["Materialkurztext"].str.contains("FGR", na=False)]
 
     df_sales_orders = df_vorschau[[
         "Material", "Materialkurztext", "Bestelldat", "WL.Datum", "KumAuMenge", "OffnEintMg"

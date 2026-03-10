@@ -1,21 +1,6 @@
 import pandas as pd
 import os
 
-# Mapping for SKU consolidation: old SKU → new SKU
-SKU_CONSOLIDATION = {
-    563901: 564481,
-    564801: 564481,
-    564802: 564482,
-    573602: 564702,
-    563902: 564482,
-    563903: 564483,
-    564803: 564483,
-}
-
-def apply_sku_consolidation(df, column='Product ID'):
-    """Replace old SKU numbers with their target SKU numbers."""
-    df[column] = df[column].replace(SKU_CONSOLIDATION)
-    return df
 
 def load_and_clean_data(input_path):
     # Load Excel files
@@ -141,25 +126,5 @@ def load_and_clean_data(input_path):
     df_inv["Product ID"] = df_inv["Product ID"].apply(clean_product_id)
     df_sales["Product ID"] = df_sales["Product ID"].apply(clean_product_id)
     df_orders["Product ID"] = df_orders["Product ID"].apply(clean_product_id)
-    df_sales_orders["Product ID"] = df_sales_orders["Product ID"].apply(clean_product_id)
-
-    # Apply consolidation to all transactional dataframes
-    df_sales = apply_sku_consolidation(df_sales)
-    df_inv = apply_sku_consolidation(df_inv)
-    df_orders = apply_sku_consolidation(df_orders)
-    df_sales_orders = apply_sku_consolidation(df_sales_orders)
-
-    # Re‑aggregate after consolidation (to sum quantities on the new SKUs)
-    df_sales = df_sales.groupby(["Product ID", "Product Desc", "MRP Type", "Week"], as_index=False).agg(
-        {"Quantity Sold": "sum"})
-    df_inv = df_inv.groupby(["Product ID", "Product Desc", "MRP Type", "Week"], as_index=False).agg(
-        {"Inventory": "sum"})
-    df_orders = df_orders.groupby(["Product ID", "Product Desc", "MRP Type", "Week"], as_index=False).agg(
-        {"Production Orders": "sum"})
-    df_sales_orders = df_sales_orders.groupby(["Product ID", "Product Desc", "Order Date", "Due Date"],
-                                              as_index=False).agg({"Ordered Qty": "sum", "Open Qty": "sum"})
-
-    # Drop old SKUs from the MOQ file so they don’t create buffers
-    df_moq_clean = df_moq_clean[~df_moq_clean["Product ID"].isin(SKU_CONSOLIDATION.keys())]
 
     return df_sales, df_inv, df_orders, df_moq_clean, df_sales_orders

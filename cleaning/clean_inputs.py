@@ -18,6 +18,16 @@ def apply_sku_consolidation(df, mapping, column="Product ID"):
     df[column] = df[column].replace(mapping)
     return df
 
+def clean_product_id(pid):
+    # Ensure it's a string to use string operations
+    pid = str(pid)
+    # Remove anything after the dash (and the dash itself)
+    pid = pid.split('-')[0]
+    # Remove leading zeros
+    pid = pid.lstrip('0')
+    # Convert to int
+    return int(pid) if pid else None
+
 def load_and_clean_data(input_path):
     # Load Excel files
     df_historical = pd.read_excel(os.path.join(input_path, "DDMRP Project Data.xlsm"), sheet_name="Historical Data", skiprows=4)
@@ -115,8 +125,24 @@ def load_and_clean_data(input_path):
     df_moq_clean["DAF"] = pd.to_numeric(df_moq_clean["DAF"], errors="coerce").fillna(1.0)
 
     # --- Open Sales Orders ---
-    # Filter to only FGR materials
-    df_vorschau = df_vorschau[df_vorschau["Materialkurztext"].str.contains("FGR", na=False)]
+    # Build a set of valid SKUs from the MOQ file
+    valid_skus = set(df_moq_clean["Product ID"].dropna())
+
+    df_vorschau["Material"] = df_vorschau["Material"].apply(clean_product_id)
+
+    df_vorschau = df_vorschau[df_vorschau["Material"].isin(valid_skus)]
+
+    df_sales_orders = df_vorschau[[
+        "Material", "Materialkurztext", "Bestelldat", "WL.Datum", "KumAuMenge", "OffnEintMg"
+    ]].copy()
+    df_sales_orders.rename(columns={
+        "Material": "Product ID",
+        "Materialkurztext": "Product Desc",
+        "Bestelldat": "Order Date",
+        "WL.Datum": "Due Date",
+        "KumAuMenge": "Ordered Qty",
+        "OffnEintMg": "Open Qty"
+    }, inplace=True)
 
     df_sales_orders = df_vorschau[[
         "Material", "Materialkurztext", "Bestelldat", "WL.Datum", "KumAuMenge", "OffnEintMg"
@@ -130,16 +156,6 @@ def load_and_clean_data(input_path):
         "KumAuMenge": "Ordered Qty",
         "OffnEintMg": "Open Qty"
     })
-
-    def clean_product_id(pid):
-        # Ensure it's a string to use string operations
-        pid = str(pid)
-        # Remove anything after the dash (and the dash itself)
-        pid = pid.split('-')[0]
-        # Remove leading zeros
-        pid = pid.lstrip('0')
-        # Convert to int
-        return int(pid) if pid else None
 
     df_inv["Product ID"] = df_inv["Product ID"].apply(clean_product_id)
     df_sales["Product ID"] = df_sales["Product ID"].apply(clean_product_id)

@@ -50,6 +50,8 @@ def load_and_clean_data(input_path):
     df_sales["MRP Type"] = df_sales["MRP Type Indicator"].map({"X0": "MTS", "X7": "MTO"})
     df_sales = df_sales[["Product ID", "Product Desc", "MRP Type", "Week", "Quantity Sold"]]
 
+    df_sales = df_sales.dropna(subset=["Quantity Sold"])
+
     # --- Inventory ---
     # --- Inventory history from Historical Data ---
     # Historical projected stock (multiple week columns) for each SKU

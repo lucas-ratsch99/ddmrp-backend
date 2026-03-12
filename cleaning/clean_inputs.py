@@ -144,28 +144,57 @@ def load_and_clean_data(input_path):
     df_orders["Product ID"] = df_orders["Product ID"].apply(clean_product_id)
     df_sales_orders["Product ID"] = df_sales_orders["Product ID"].apply(clean_product_id)
 
-    # Determine which old SKUs actually appear in the sales history.
+    # Merge SKUs that appear in the sales history
     sales_skus = set(df_sales["Product ID"].dropna().unique())
-    filtered_mapping = {old: new for old, new in SKU_CONSOLIDATION.items() if old in sales_skus}
+    filtered_map = {old: new for old, new in SKU_CONSOLIDATION.items() if old in sales_skus}
 
-    # Apply consolidation only to those SKUs
-    df_sales = apply_sku_consolidation(df_sales, filtered_mapping)
-    df_inv = apply_sku_consolidation(df_inv, filtered_mapping)
-    df_orders = apply_sku_consolidation(df_orders, filtered_mapping)
-    df_sales_orders = apply_sku_consolidation(df_sales_orders, filtered_mapping)
+    # Apply consolidation
+    df_sales = apply_sku_consolidation(df_sales, filtered_map)
+    df_inv = apply_sku_consolidation(df_inv, filtered_map)
+    df_orders = apply_sku_consolidation(df_orders, filtered_map)
+    df_sales_orders = apply_sku_consolidation(df_sales_orders, filtered_map)
 
-    # Re-aggregate after consolidation
-    df_sales = df_sales.groupby(["Product ID", "Product Desc", "MRP Type", "Week"], as_index=False) \
-        .agg({"Quantity Sold": "sum"})
-    df_inv = df_inv.groupby(["Product ID", "Product Desc", "MRP Type", "Week"], as_index=False) \
-        .agg({"Inventory": "sum"})
-    df_orders = df_orders.groupby(["Product ID", "Product Desc", "MRP Type", "Week"], as_index=False) \
-        .agg({"Production Orders": "sum"})
+    # Re‑aggregate after consolidation
+    # For sales, group by Product ID and Week; choosing the first MRP Type and Desc
+    df_sales = df_sales.groupby(
+        ["Product ID", "Week"],
+        as_index=False
+    ).agg({
+        "Quantity Sold": "sum",
+        "MRP Type": "first",
+        "Product Desc": "first"
+    })
+
+    # Same for inventory and production orders
+    df_inv = df_inv.groupby(
+        ["Product ID", "Week"],
+        as_index=False
+    ).agg({
+        "Inventory": "sum",
+        "MRP Type": "first",
+        "Product Desc": "first"
+    })
+
+    df_orders = df_orders.groupby(
+        ["Product ID", "Week"],
+        as_index=False
+    ).agg({
+        "Production Orders": "sum",
+        "MRP Type": "first",
+        "Product Desc": "first"
+    })
+
+    # For open sales orders, group by Product ID, Order Date, Due Date
     df_sales_orders = df_sales_orders.groupby(
-        ["Product ID", "Product Desc", "Order Date", "Due Date"], as_index=False
-    ).agg({"Ordered Qty": "sum", "Open Qty": "sum"})
+        ["Product ID", "Order Date", "Due Date"],
+        as_index=False
+    ).agg({
+        "Ordered Qty": "sum",
+        "Open Qty": "sum",
+        "Product Desc": "first"
+    })
 
-    # Drop the old SKUs from the MOQ table so they don't generate buffers
-    df_moq_clean = df_moq_clean[~df_moq_clean["Product ID"].isin(filtered_mapping.keys())]
+    # Remove the old SKUs from the MOQ file so they don’t generate buffers
+    df_moq_clean = df_moq_clean[~df_moq_clean["Product ID"].isin(filtered_map.keys())]
 
     return df_sales, df_inv, df_orders, df_moq_clean, df_sales_orders

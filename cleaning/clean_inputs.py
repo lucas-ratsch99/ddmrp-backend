@@ -1,6 +1,22 @@
 import pandas as pd
 import os
 
+SKU_CONSOLIDATION = {
+    563901: 564481,
+    564801: 564481,
+    564802: 564482,
+    573602: 564702,
+    563902: 564482,
+    563903: 564483,
+    564803: 564483,
+}
+
+def apply_sku_consolidation(df, mapping, column="Product ID"):
+    """
+    Replace old SKU numbers with their target SKU numbers on the given column.
+    """
+    df[column] = df[column].replace(mapping)
+    return df
 
 def load_and_clean_data(input_path):
     # Load Excel files
@@ -126,5 +142,30 @@ def load_and_clean_data(input_path):
     df_inv["Product ID"] = df_inv["Product ID"].apply(clean_product_id)
     df_sales["Product ID"] = df_sales["Product ID"].apply(clean_product_id)
     df_orders["Product ID"] = df_orders["Product ID"].apply(clean_product_id)
+    df_sales_orders["Product ID"] = df_sales_orders["Product ID"].apply(clean_product_id)
+
+    # Determine which old SKUs actually appear in the sales history.
+    sales_skus = set(df_sales["Product ID"].dropna().unique())
+    filtered_mapping = {old: new for old, new in SKU_CONSOLIDATION.items() if old in sales_skus}
+
+    # Apply consolidation only to those SKUs
+    df_sales = apply_sku_consolidation(df_sales, filtered_mapping)
+    df_inv = apply_sku_consolidation(df_inv, filtered_mapping)
+    df_orders = apply_sku_consolidation(df_orders, filtered_mapping)
+    df_sales_orders = apply_sku_consolidation(df_sales_orders, filtered_mapping)
+
+    # Re-aggregate after consolidation
+    df_sales = df_sales.groupby(["Product ID", "Product Desc", "MRP Type", "Week"], as_index=False) \
+        .agg({"Quantity Sold": "sum"})
+    df_inv = df_inv.groupby(["Product ID", "Product Desc", "MRP Type", "Week"], as_index=False) \
+        .agg({"Inventory": "sum"})
+    df_orders = df_orders.groupby(["Product ID", "Product Desc", "MRP Type", "Week"], as_index=False) \
+        .agg({"Production Orders": "sum"})
+    df_sales_orders = df_sales_orders.groupby(
+        ["Product ID", "Product Desc", "Order Date", "Due Date"], as_index=False
+    ).agg({"Ordered Qty": "sum", "Open Qty": "sum"})
+
+    # Drop the old SKUs from the MOQ table so they don't generate buffers
+    df_moq_clean = df_moq_clean[~df_moq_clean["Product ID"].isin(filtered_mapping.keys())]
 
     return df_sales, df_inv, df_orders, df_moq_clean, df_sales_orders

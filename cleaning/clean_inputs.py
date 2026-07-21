@@ -215,4 +215,31 @@ def load_and_clean_data(input_path):
     # Remove the old SKUs from the MOQ file so they don’t generate buffers
     df_moq_clean = df_moq_clean[~df_moq_clean["Product ID"].isin(filtered_map.keys())]
 
+    def _canonical_by_id(frames, col):
+        pairs = pd.concat(
+            [f[["Product ID", col]] for f in frames if col in f.columns],
+            ignore_index=True,
+        ).dropna(subset=["Product ID", col])
+        if pairs.empty:
+            return {}
+        # Most frequent value per Product ID (deterministic; ties -> first seen)
+        return (
+            pairs.groupby("Product ID")[col]
+            .agg(lambda s: s.value_counts().idxmax())
+            .to_dict()
+        )
+
+    merged_frames = [df_sales, df_inv, df_orders]
+    desc_by_id = _canonical_by_id(merged_frames, "Product Desc")
+    mrp_by_id = _canonical_by_id(merged_frames, "MRP Type")
+
+    for frame in merged_frames:
+        frame["Product Desc"] = frame["Product ID"].map(desc_by_id).fillna(frame["Product Desc"])
+        frame["MRP Type"] = frame["Product ID"].map(mrp_by_id).fillna(frame["MRP Type"])
+
+    # Keep the open-sales-orders description consistent for its output sheet too
+    df_sales_orders["Product Desc"] = (
+        df_sales_orders["Product ID"].map(desc_by_id).fillna(df_sales_orders["Product Desc"])
+    )
+
     return df_sales, df_inv, df_orders, df_moq_clean, df_sales_orders

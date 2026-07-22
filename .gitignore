@@ -1,14 +1,15 @@
-# IDE/venv
+# IDE / venv / cache
 .venv/
 .idea/
 __pycache__/
-
-# Python cache
 *.pyc
 
-# Allow Excel files in inputs
-!data/
-!data/inputs/
-!data/inputs/*.xlsx
-!data/inputs/*.xlsm
-!data/outputs/
+# Runtime data is not versioned: user uploads and generated results
+data/inputs/*
+data/outputs/*
+data/processed/*
+
+# ...except placeholders and the material master (not user-uploaded)
+!data/inputs/.keep
+!data/outputs/.keep
+!data/inputs/Artikel & Materialien FGR+.XLSX
